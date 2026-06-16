@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "灵感笔记",
+    "slug": "inspiration-notes",
+    "scheme": "inspirationnotes",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "server"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-router"]
+  }
+}

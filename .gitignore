@@ -1,0 +1,10 @@
+.DS_Store
+.expo/
+.pnpm-store/
+.turbo/
+coverage/
+dist/
+node_modules/
+web-build/
+*.log
+*.tsbuildinfo
