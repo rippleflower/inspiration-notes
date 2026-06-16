@@ -4,12 +4,24 @@ import { colors, spacing, typography } from "../theme/tokens";
 
 interface MarkdownPreviewProps {
   content: string;
+  fontSize: number;
 }
 
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content, fontSize }: MarkdownPreviewProps) {
   return (
     <ScrollView style={styles.preview}>
-      <Markdown style={markdownStyles}>{content || "还没有内容。"}</Markdown>
+      <Markdown
+        style={{
+          ...markdownStyles,
+          body: {
+            ...markdownStyles.body,
+            fontSize,
+            lineHeight: Math.round(fontSize * 1.5)
+          }
+        }}
+      >
+        {content || "还没有内容。"}
+      </Markdown>
     </ScrollView>
   );
 }
