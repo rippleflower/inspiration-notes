@@ -3,10 +3,11 @@ import { colors, spacing, typography } from "../theme/tokens";
 
 interface MarkdownEditorProps {
   content: string;
+  fontSize: number;
   onChange(content: string): void;
 }
 
-export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
+export function MarkdownEditor({ content, fontSize, onChange }: MarkdownEditorProps) {
   return (
     <TextInput
       accessibilityLabel="Markdown 编辑器"
@@ -15,7 +16,7 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
       placeholder="# 记录一个灵感"
       placeholderTextColor={colors.muted}
       spellCheck={false}
-      style={styles.editor}
+      style={[styles.editor, { fontSize, lineHeight: Math.round(fontSize * 1.5) }]}
       textAlignVertical="top"
       value={content}
     />
