@@ -43,10 +43,16 @@ export function NoteSidebar({
         placeholder="搜索标题、摘要或标签"
         placeholderTextColor={colors.muted}
         style={styles.search}
+        testID="note-search-input"
         value={query}
       />
 
-      <Pressable accessibilityRole="button" onPress={onCreateNote} style={styles.primaryButton}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onCreateNote}
+        style={styles.primaryButton}
+        testID="create-note-button"
+      >
         <Text style={styles.primaryButtonText}>新建灵感</Text>
       </Pressable>
 
@@ -57,6 +63,7 @@ export function NoteSidebar({
             key={item.id}
             onPress={() => onViewChange(item.id)}
             style={[styles.navButton, activeView === item.id && styles.navButtonActive]}
+            testID={`nav-${item.id}`}
           >
             <Text style={[styles.navItem, activeView === item.id && styles.navItemActive]}>
               {item.label}
@@ -106,6 +113,7 @@ export function NoteSidebar({
               key={note.id}
               onPress={() => onSelectNote(note.id)}
               style={[styles.noteCard, activeId === note.id && styles.activeNoteCard]}
+              testID={`note-card-${note.id}`}
             >
               <View style={styles.noteHeader}>
                 <Text numberOfLines={1} style={styles.noteTitle}>
@@ -159,9 +167,7 @@ function formatUpdatedAt(value: string): string {
 const styles = StyleSheet.create({
   activeNoteCard: {
     borderColor: colors.accentDeep,
-    shadowColor: colors.accentDeep,
-    shadowOpacity: 0.12,
-    shadowRadius: 10
+    borderWidth: 2
   },
   brand: {
     ...typography.heading,

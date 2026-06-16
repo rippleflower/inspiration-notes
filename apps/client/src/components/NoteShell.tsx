@@ -298,22 +298,44 @@ export function NoteShell() {
             <View style={styles.actions}>
               {isDeleted ? (
                 <>
-                  <ToolbarButton label="恢复" onPress={restoreActiveNote} variant="success" />
                   <ToolbarButton
+                    accessibilityLabel="恢复当前笔记"
+                    label="恢复"
+                    onPress={restoreActiveNote}
+                    testID="restore-note-button"
+                    variant="success"
+                  />
+                  <ToolbarButton
+                    accessibilityLabel="永久删除当前笔记"
                     label="永久删除"
                     onPress={permanentlyDeleteActiveNote}
+                    testID="delete-note-button"
                     variant="danger"
                   />
                 </>
               ) : (
                 <>
-                  <ToolbarButton disabled={!activeNote} label="模板" onPress={insertDailyTemplate} />
                   <ToolbarButton
+                    accessibilityLabel="插入模板"
                     disabled={!activeNote}
-                    label={activeNote?.isFavorite ? "已收藏" : "收藏"}
-                    onPress={toggleActiveFavorite}
+                    label="模板"
+                    onPress={insertDailyTemplate}
+                    testID="insert-template-button"
                   />
-                  <ToolbarButton disabled={!activeNote} label="移到回收站" onPress={moveActiveToTrash} />
+                  <ToolbarButton
+                    accessibilityLabel="切换收藏当前笔记"
+                    disabled={!activeNote}
+                    label={activeNote?.isFavorite ? "已收藏" : "收藏笔记"}
+                    onPress={toggleActiveFavorite}
+                    testID="favorite-note-button"
+                  />
+                  <ToolbarButton
+                    accessibilityLabel="移到回收站当前笔记"
+                    disabled={!activeNote}
+                    label="移到回收站"
+                    onPress={moveActiveToTrash}
+                    testID="trash-note-button"
+                  />
                 </>
               )}
             </View>
@@ -321,9 +343,19 @@ export function NoteShell() {
 
           <View style={styles.secondaryToolbar}>
             <View style={styles.fontControls}>
-              <ToolbarButton label="A-" onPress={() => changeFontSize(-fontSizeRange.step)} />
+              <ToolbarButton
+                accessibilityLabel="减小字体"
+                label="A-"
+                onPress={() => changeFontSize(-fontSizeRange.step)}
+                testID="decrease-font-button"
+              />
               <Text style={styles.fontSizeText}>{fontSize}px</Text>
-              <ToolbarButton label="A+" onPress={() => changeFontSize(fontSizeRange.step)} />
+              <ToolbarButton
+                accessibilityLabel="增大字体"
+                label="A+"
+                onPress={() => changeFontSize(fontSizeRange.step)}
+                testID="increase-font-button"
+              />
             </View>
 
             {!isWide && (
@@ -348,9 +380,15 @@ export function NoteShell() {
                 placeholder="用逗号或空格分隔，例如：灵感 产品"
                 placeholderTextColor={colors.muted}
                 style={styles.tagInput}
+                testID="tag-input"
                 value={tagDraft}
               />
-              <ToolbarButton label="保存标签" onPress={saveTags} />
+              <ToolbarButton
+                accessibilityLabel="保存当前笔记标签"
+                label="保存标签"
+                onPress={saveTags}
+                testID="save-tags-button"
+              />
             </View>
           )}
 
@@ -375,19 +413,24 @@ export function NoteShell() {
 
 function ToolbarButton({
   active = false,
+  accessibilityLabel,
   disabled = false,
   label,
   onPress,
+  testID,
   variant = "default"
 }: {
   active?: boolean;
+  accessibilityLabel?: string;
   disabled?: boolean;
   label: string;
   onPress(): void;
+  testID?: string;
   variant?: "default" | "danger" | "success";
 }) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
@@ -398,6 +441,7 @@ function ToolbarButton({
         variant === "success" && styles.toolbarButtonSuccess,
         disabled && styles.toolbarButtonDisabled
       ]}
+      testID={testID}
     >
       <Text
         style={[
