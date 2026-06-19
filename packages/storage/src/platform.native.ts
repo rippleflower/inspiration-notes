@@ -1,11 +1,21 @@
-import type { Note, NoteId } from "@inspiration-notes/core";
+import type {
+  Note,
+  NoteId,
+  PluginInstallRecord,
+  PluginInstallationStore
+} from "@inspiration-notes/core";
 import * as SQLite from "expo-sqlite";
 import { filterAndSortNotes, type NoteListFilter, type NoteRepository } from "./repository";
+import { copyRecord } from "./pluginInstallations";
 
 const databaseName = "inspiration-notes.db";
 
 export function createPlatformNoteRepository(): NoteRepository {
   return new SQLiteNoteRepository();
+}
+
+export function createPlatformPluginInstallationStore(): PluginInstallationStore {
+  return new SQLitePluginInstallationStore();
 }
 
 class SQLiteNoteRepository implements NoteRepository {
@@ -65,6 +75,57 @@ class SQLiteNoteRepository implements NoteRepository {
           );
           create index if not exists notes_updated_at_idx on notes(updated_at);
           create index if not exists notes_status_idx on notes(status);
+        `);
+
+        return db;
+      });
+    }
+
+    return this.database;
+  }
+}
+
+class SQLitePluginInstallationStore implements PluginInstallationStore {
+  private database: Promise<SQLite.SQLiteDatabase> | null = null;
+
+  async load(): Promise<PluginInstallRecord[]> {
+    const db = await this.open();
+    const rows = await db.getAllAsync<{ payload: string }>(
+      "select payload from plugin_installations order by id asc"
+    );
+
+    return rows.map((row) => copyRecord(JSON.parse(row.payload) as PluginInstallRecord));
+  }
+
+  async save(records: PluginInstallRecord[]): Promise<void> {
+    const db = await this.open();
+
+    await db.withTransactionAsync(async () => {
+      await db.runAsync("delete from plugin_installations");
+
+      for (const record of records) {
+        await db.runAsync(
+          `insert into plugin_installations (id, enabled, payload)
+           values (?, ?, ?)`,
+          record.id,
+          record.enabled ? 1 : 0,
+          JSON.stringify(copyRecord(record))
+        );
+      }
+    });
+  }
+
+  private async open(): Promise<SQLite.SQLiteDatabase> {
+    if (!this.database) {
+      this.database = SQLite.openDatabaseAsync(databaseName).then(async (db) => {
+        await db.execAsync(`
+          create table if not exists plugin_installations (
+            id text primary key not null,
+            enabled integer not null,
+            payload text not null
+          );
+          create index if not exists plugin_installations_enabled_idx
+            on plugin_installations(enabled);
         `);
 
         return db;

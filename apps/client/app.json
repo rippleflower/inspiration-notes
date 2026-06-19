@@ -9,7 +9,7 @@
     "platforms": ["ios", "android", "web"],
     "web": {
       "bundler": "metro",
-      "output": "server"
+      "output": "static"
     },
     "ios": {
       "supportsTablet": true

@@ -3,6 +3,7 @@
 .pnpm-store/
 .turbo/
 coverage/
+artifacts/
 dist/
 node_modules/
 web-build/

@@ -1,6 +1,5 @@
 import {
   countWords,
-  createDefaultPluginRegistry,
   createNote,
   restoreNote,
   softDeleteNote,
@@ -11,28 +10,23 @@ import {
 } from "@inspiration-notes/core";
 import { createPlatformNoteRepository, type NoteSummary } from "@inspiration-notes/storage";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View
-} from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { NoteSidebar } from "./NoteSidebar";
+import { PluginPanel } from "./PluginPanel";
+import { ToolbarButton } from "./ToolbarButton";
 import {
   clampFontSize,
   collectTags,
   fontSizeRange,
   formatTagInput,
-  parseTagInput,
-  type ActiveView
+  parseTagInput
 } from "./noteUi";
+import { useInstalledPlugins } from "../plugins/useInstalledPlugins";
 import { useNotesStore } from "../state/useNotesStore";
 import { colors, spacing, typography } from "../theme/tokens";
+import { filterSummariesForView } from "../workspace/filters";
 
 const welcomeMarkdown = `# 欢迎使用灵感笔记
 
@@ -45,7 +39,14 @@ const welcomeMarkdown = `# 欢迎使用灵感笔记
 
 export function NoteShell() {
   const repository = useMemo(() => createPlatformNoteRepository(), []);
-  const pluginRegistry = useMemo(() => createDefaultPluginRegistry(), []);
+  const {
+    installPlugin,
+    isReady: pluginsReady,
+    plugins,
+    registry: pluginRegistry,
+    setPluginEnabled,
+    uninstallPlugin
+  } = useInstalledPlugins();
   const { width } = useWindowDimensions();
   const isWide = width >= 920;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -265,6 +266,7 @@ export function NoteShell() {
 
   const title = activeNote?.title ?? "没有选中的笔记";
   const isDeleted = activeNote?.status === "deleted";
+  const canInsertDailyTemplate = pluginRegistry.hasCommand("insert-daily-template");
 
   return (
     <View style={styles.screen}>
@@ -317,7 +319,7 @@ export function NoteShell() {
                 <>
                   <ToolbarButton
                     accessibilityLabel="插入模板"
-                    disabled={!activeNote}
+                    disabled={!activeNote || !canInsertDailyTemplate}
                     label="模板"
                     onPress={insertDailyTemplate}
                     testID="insert-template-button"
@@ -392,6 +394,14 @@ export function NoteShell() {
             </View>
           )}
 
+          <PluginPanel
+            isReady={pluginsReady}
+            onInstall={installPlugin}
+            onSetEnabled={setPluginEnabled}
+            onUninstall={uninstallPlugin}
+            plugins={plugins}
+          />
+
           <View style={[styles.workspace, !isWide && styles.workspaceCompact]}>
             {(isWide || mode === "edit") && (
               <MarkdownEditor content={content} fontSize={fontSize} onChange={updateContent} />
@@ -409,89 +419,6 @@ export function NoteShell() {
       </ScrollView>
     </View>
   );
-}
-
-function ToolbarButton({
-  active = false,
-  accessibilityLabel,
-  disabled = false,
-  label,
-  onPress,
-  testID,
-  variant = "default"
-}: {
-  active?: boolean;
-  accessibilityLabel?: string;
-  disabled?: boolean;
-  label: string;
-  onPress(): void;
-  testID?: string;
-  variant?: "default" | "danger" | "success";
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={[
-        styles.toolbarButton,
-        active && styles.toolbarButtonActive,
-        variant === "danger" && styles.toolbarButtonDanger,
-        variant === "success" && styles.toolbarButtonSuccess,
-        disabled && styles.toolbarButtonDisabled
-      ]}
-      testID={testID}
-    >
-      <Text
-        style={[
-          styles.toolbarButtonText,
-          active && styles.toolbarButtonTextActive,
-          variant === "danger" && styles.toolbarButtonTextDanger,
-          variant === "success" && styles.toolbarButtonTextSuccess,
-          disabled && styles.toolbarButtonTextDisabled
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function filterSummariesForView(
-  summaries: NoteSummary[],
-  activeView: ActiveView,
-  selectedTag: string | null,
-  query: string
-): NoteSummary[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-
-  return summaries.filter((note) => {
-    const matchesView =
-      activeView === "all"
-        ? note.status === "active"
-        : activeView === "favorites"
-          ? note.status === "active" && note.isFavorite
-          : activeView === "tags"
-            ? note.status === "active" && (!selectedTag || note.tags.includes(selectedTag))
-            : activeView === "folders"
-              ? note.status === "active" && note.folderId === null
-              : note.status === "deleted";
-
-    if (!matchesView) {
-      return false;
-    }
-
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    return (
-      note.title.toLocaleLowerCase().includes(normalizedQuery) ||
-      note.excerpt.toLocaleLowerCase().includes(normalizedQuery) ||
-      note.tags.some((tag) => tag.toLocaleLowerCase().includes(normalizedQuery))
-    );
-  });
 }
 
 const styles = StyleSheet.create({
@@ -600,45 +527,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.md,
     justifyContent: "space-between"
-  },
-  toolbarButton: {
-    backgroundColor: colors.canvas,
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
-  toolbarButtonActive: {
-    backgroundColor: colors.accentDeep,
-    borderColor: colors.accentDeep
-  },
-  toolbarButtonDanger: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger
-  },
-  toolbarButtonDisabled: {
-    opacity: 0.45
-  },
-  toolbarButtonSuccess: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success
-  },
-  toolbarButtonText: {
-    color: colors.primary,
-    fontWeight: "700"
-  },
-  toolbarButtonTextActive: {
-    color: colors.canvas
-  },
-  toolbarButtonTextDanger: {
-    color: colors.danger
-  },
-  toolbarButtonTextDisabled: {
-    color: colors.muted
-  },
-  toolbarButtonTextSuccess: {
-    color: colors.success
   },
   workspace: {
     flex: 1,

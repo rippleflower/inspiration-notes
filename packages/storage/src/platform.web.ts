@@ -1,10 +1,18 @@
-import type { Note, NoteId } from "@inspiration-notes/core";
+import type {
+  Note,
+  NoteId,
+  PluginInstallRecord,
+  PluginInstallationStore
+} from "@inspiration-notes/core";
 import { filterAndSortNotes, type NoteListFilter, type NoteRepository } from "./repository";
+import { copyRecord } from "./pluginInstallations";
 
 const dbName = "inspiration-notes";
-const dbVersion = 1;
-const storeName = "notes";
-const localStorageKey = "inspiration-notes:notes";
+const dbVersion = 2;
+const notesStoreName = "notes";
+const pluginInstallationsStoreName = "pluginInstallations";
+const localStorageNotesKey = "inspiration-notes:notes";
+const localStoragePluginInstallationsKey = "inspiration-notes:plugin-installations";
 
 export function createPlatformNoteRepository(): NoteRepository {
   if (typeof indexedDB === "undefined") {
@@ -12,6 +20,14 @@ export function createPlatformNoteRepository(): NoteRepository {
   }
 
   return new IndexedDbNoteRepository();
+}
+
+export function createPlatformPluginInstallationStore(): PluginInstallationStore {
+  if (typeof indexedDB === "undefined") {
+    return new LocalStoragePluginInstallationStore();
+  }
+
+  return new IndexedDbPluginInstallationStore();
 }
 
 class LocalStorageNoteRepository implements NoteRepository {
@@ -46,7 +62,7 @@ class LocalStorageNoteRepository implements NoteRepository {
       return [];
     }
 
-    const raw = localStorage.getItem(localStorageKey);
+    const raw = localStorage.getItem(localStorageNotesKey);
 
     if (!raw) {
       return [];
@@ -65,33 +81,88 @@ class LocalStorageNoteRepository implements NoteRepository {
       return;
     }
 
-    localStorage.setItem(localStorageKey, JSON.stringify(notes));
+    localStorage.setItem(localStorageNotesKey, JSON.stringify(notes));
+  }
+}
+
+class LocalStoragePluginInstallationStore implements PluginInstallationStore {
+  async load(): Promise<PluginInstallRecord[]> {
+    if (typeof localStorage === "undefined") {
+      return [];
+    }
+
+    const raw = localStorage.getItem(localStoragePluginInstallationsKey);
+
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as PluginInstallRecord[]).map(copyRecord) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async save(records: PluginInstallRecord[]): Promise<void> {
+    if (typeof localStorage === "undefined") {
+      return;
+    }
+
+    localStorage.setItem(
+      localStoragePluginInstallationsKey,
+      JSON.stringify(records.map(copyRecord))
+    );
   }
 }
 
 class IndexedDbNoteRepository implements NoteRepository {
   async deleteHard(id: NoteId): Promise<void> {
     const db = await openNotesDb();
-    await transaction(db, "readwrite", (store) => store.delete(id));
+    await transaction(db, notesStoreName, "readwrite", (store) => store.delete(id));
   }
 
   async getById(id: NoteId): Promise<Note | null> {
     const db = await openNotesDb();
-    const note = await transaction<Note | undefined>(db, "readonly", (store) => store.get(id));
+    const note = await transaction<Note | undefined>(db, notesStoreName, "readonly", (store) =>
+      store.get(id)
+    );
 
     return note ?? null;
   }
 
   async list(filter?: NoteListFilter) {
     const db = await openNotesDb();
-    const notes = await transaction<Note[]>(db, "readonly", (store) => store.getAll());
+    const notes = await transaction<Note[]>(db, notesStoreName, "readonly", (store) =>
+      store.getAll()
+    );
 
     return filterAndSortNotes(notes, filter);
   }
 
   async save(note: Note): Promise<void> {
     const db = await openNotesDb();
-    await transaction(db, "readwrite", (store) => store.put(note));
+    await transaction(db, notesStoreName, "readwrite", (store) => store.put(note));
+  }
+}
+
+class IndexedDbPluginInstallationStore implements PluginInstallationStore {
+  async load(): Promise<PluginInstallRecord[]> {
+    const db = await openNotesDb();
+    const records = await transaction<PluginInstallRecord[]>(
+      db,
+      pluginInstallationsStoreName,
+      "readonly",
+      (store) => store.getAll()
+    );
+
+    return records.map(copyRecord);
+  }
+
+  async save(records: PluginInstallRecord[]): Promise<void> {
+    const db = await openNotesDb();
+    await replaceAll(db, pluginInstallationsStoreName, records.map(copyRecord));
   }
 }
 
@@ -104,10 +175,14 @@ function openNotesDb(): Promise<IDBDatabase> {
     request.onupgradeneeded = () => {
       const db = request.result;
 
-      if (!db.objectStoreNames.contains(storeName)) {
-        const store = db.createObjectStore(storeName, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(notesStoreName)) {
+        const store = db.createObjectStore(notesStoreName, { keyPath: "id" });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
         store.createIndex("status", "status", { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(pluginInstallationsStoreName)) {
+        db.createObjectStore(pluginInstallationsStoreName, { keyPath: "id" });
       }
     };
   });
@@ -115,6 +190,7 @@ function openNotesDb(): Promise<IDBDatabase> {
 
 function transaction<T>(
   db: IDBDatabase,
+  storeName: string,
   mode: IDBTransactionMode,
   operation: (store: IDBObjectStore) => IDBRequest<T>
 ): Promise<T> {
@@ -125,5 +201,25 @@ function transaction<T>(
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
     tx.onerror = () => reject(tx.error);
+  });
+}
+
+function replaceAll<T extends { id: string }>(
+  db: IDBDatabase,
+  storeName: string,
+  records: T[]
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, "readwrite");
+    const store = tx.objectStore(storeName);
+
+    store.clear();
+
+    for (const record of records) {
+      store.put(record);
+    }
+
+    tx.onerror = () => reject(tx.error);
+    tx.oncomplete = () => resolve();
   });
 }

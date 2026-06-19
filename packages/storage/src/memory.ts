@@ -1,5 +1,9 @@
 import type { Note, NoteId } from "@inspiration-notes/core";
 import { filterAndSortNotes, type NoteListFilter, type NoteRepository } from "./repository";
+export {
+  createInMemoryPluginInstallationStore,
+  InMemoryPluginInstallationStore
+} from "./pluginInstallations";
 
 export class InMemoryNoteRepository implements NoteRepository {
   private readonly notes = new Map<NoteId, Note>();

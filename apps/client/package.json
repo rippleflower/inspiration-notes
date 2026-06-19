@@ -4,7 +4,8 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "build:web": "expo export -p web --no-ssg",
+    "build:web": "expo export -p web",
+    "package:web": "node scripts/package-web.mjs",
     "start": "expo start",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",

@@ -6,6 +6,7 @@
   "scripts": {
     "build:web": "pnpm --filter @inspiration-notes/client build:web",
     "lint": "eslint .",
+    "package:web": "pnpm build:web && pnpm --filter @inspiration-notes/client package:web",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck"
   },

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PluginRegistry, createDefaultPluginRegistry } from "../src";
+import {
+  InMemoryPluginInstallationStore,
+  PluginInstaller,
+  PluginRegistry,
+  builtinPluginCatalog,
+  createDefaultPluginRegistry
+} from "../src";
 
 describe("PluginRegistry", () => {
   it("registers and runs commands", async () => {
@@ -56,5 +62,41 @@ describe("PluginRegistry", () => {
     expect(registry.listCommands().map((command) => command.id)).toContain(
       "insert-daily-template"
     );
+  });
+
+  it("installs default plugins and builds an enabled registry", async () => {
+    const installer = new PluginInstaller(builtinPluginCatalog, new InMemoryPluginInstallationStore());
+
+    await installer.ensureDefaultsInstalled(new Date("2026-06-18T00:00:00.000Z"));
+
+    const plugins = await installer.listInstallable();
+    const registry = await installer.createRegistry();
+
+    expect(plugins).toMatchObject([
+      {
+        enabled: true,
+        id: "writing-tools",
+        installed: true
+      }
+    ]);
+    expect(registry.hasCommand("insert-daily-template")).toBe(true);
+  });
+
+  it("disables, re-enables, and uninstalls plugins", async () => {
+    const installer = new PluginInstaller(builtinPluginCatalog, new InMemoryPluginInstallationStore());
+
+    await installer.install("writing-tools");
+    await installer.setEnabled("writing-tools", false);
+
+    expect((await installer.createRegistry()).hasCommand("insert-daily-template")).toBe(false);
+
+    await installer.setEnabled("writing-tools", true);
+
+    expect((await installer.createRegistry()).hasCommand("insert-daily-template")).toBe(true);
+
+    await installer.uninstall("writing-tools");
+
+    const [plugin] = await installer.listInstallable();
+    expect(plugin).toMatchObject({ enabled: false, installed: false });
   });
 });
