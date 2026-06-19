@@ -44,6 +44,7 @@ export function NoteShell() {
     isReady: pluginsReady,
     plugins,
     registry: pluginRegistry,
+    securityIssues,
     setPluginEnabled,
     uninstallPlugin
   } = useInstalledPlugins();
@@ -55,6 +56,7 @@ export function NoteShell() {
   const [content, setContent] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [isSaving, setIsSaving] = useState(false);
+  const [showPluginPanel, setShowPluginPanel] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
   const activeId = useNotesStore((state) => state.activeId);
   const activeView = useNotesStore((state) => state.activeView);
@@ -370,6 +372,15 @@ export function NoteShell() {
                 />
               </View>
             )}
+
+            <ToolbarButton
+              accessibilityLabel="打开或关闭插件中心"
+              active={showPluginPanel}
+              label={securityIssues.length > 0 ? `插件中心 · ${securityIssues.length} 个警告` : "插件中心"}
+              onPress={() => setShowPluginPanel((value) => !value)}
+              testID="toggle-plugin-panel-button"
+              variant={securityIssues.length > 0 ? "danger" : "default"}
+            />
           </View>
 
           {activeNote && !isDeleted && (
@@ -394,13 +405,16 @@ export function NoteShell() {
             </View>
           )}
 
-          <PluginPanel
-            isReady={pluginsReady}
-            onInstall={installPlugin}
-            onSetEnabled={setPluginEnabled}
-            onUninstall={uninstallPlugin}
-            plugins={plugins}
-          />
+          {showPluginPanel && (
+            <PluginPanel
+              isReady={pluginsReady}
+              onInstall={installPlugin}
+              onSetEnabled={setPluginEnabled}
+              onUninstall={uninstallPlugin}
+              plugins={plugins}
+              securityIssues={securityIssues}
+            />
+          )}
 
           <View style={[styles.workspace, !isWide && styles.workspaceCompact]}>
             {(isWide || mode === "edit") && (

@@ -6,6 +6,7 @@ export class PluginRegistry {
 
   register(plugin: BuiltInPlugin): void {
     assertUnique(plugin.id, this.plugins, "plugin");
+    assertPluginPermissions(plugin);
 
     for (const command of plugin.commands ?? []) {
       assertUnique(command.id, this.commands, "command");
@@ -44,5 +45,19 @@ export class PluginRegistry {
 function assertUnique<T>(id: string, map: Map<string, T>, label: string): void {
   if (map.has(id)) {
     throw new Error(`Duplicate ${label} id: ${id}`);
+  }
+}
+
+function assertPluginPermissions(plugin: BuiltInPlugin): void {
+  const pluginPermissions = new Set(plugin.permissions);
+
+  for (const command of plugin.commands ?? []) {
+    for (const permission of command.requiredPermissions ?? []) {
+      if (!pluginPermissions.has(permission)) {
+        throw new Error(
+          `Plugin ${plugin.id} command ${command.id} requests undeclared permission: ${permission}`
+        );
+      }
+    }
   }
 }

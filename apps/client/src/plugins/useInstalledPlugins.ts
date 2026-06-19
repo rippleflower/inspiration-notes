@@ -2,7 +2,8 @@ import {
   builtinPluginCatalog,
   PluginInstaller,
   PluginRegistry,
-  type PluginInstallView
+  type PluginInstallView,
+  type PluginSecurityIssue
 } from "@inspiration-notes/core";
 import { createPlatformPluginInstallationStore } from "@inspiration-notes/storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -14,11 +15,15 @@ export function useInstalledPlugins() {
   );
   const [plugins, setPlugins] = useState<PluginInstallView[]>([]);
   const [registry, setRegistry] = useState(() => new PluginRegistry());
+  const [securityIssues, setSecurityIssues] = useState<PluginSecurityIssue[]>([]);
   const [isReady, setIsReady] = useState(false);
 
   const refresh = useCallback(async () => {
-    setPlugins(await installer.listInstallable());
-    setRegistry(await installer.createRegistry());
+    const state = await installer.orchestrate();
+
+    setPlugins(state.plugins);
+    setRegistry(state.registry as PluginRegistry);
+    setSecurityIssues(state.issues);
     setIsReady(true);
   }, [installer]);
 
@@ -69,6 +74,7 @@ export function useInstalledPlugins() {
     isReady,
     plugins,
     registry,
+    securityIssues,
     setPluginEnabled,
     uninstallPlugin
   };

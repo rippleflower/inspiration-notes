@@ -7,8 +7,14 @@
     "build:web": "pnpm --filter @inspiration-notes/client build:web",
     "lint": "eslint .",
     "package:web": "pnpm build:web && pnpm --filter @inspiration-notes/client package:web",
-    "test": "pnpm -r --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "test": "vitest run --root packages/core && vitest run --root packages/storage && vitest run --root apps/client",
+    "typecheck": "tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/storage/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit"
+  },
+  "pnpm": {
+    "overrides": {
+      "markdown-it": "^14.2.0",
+      "uuid": "^11.1.1"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

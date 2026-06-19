@@ -13,7 +13,9 @@ export const colors = {
   primary: "#0f172a",
   secondaryAccent: "#0ea5e9",
   success: "#16a34a",
-  successSoft: "#dcfce7"
+  successSoft: "#dcfce7",
+  warning: "#d97757",
+  warningSoft: "#fff7ed"
 } as const;
 
 export const spacing = {
@@ -27,18 +29,18 @@ export const spacing = {
 
 export const typography = {
   body: {
-    fontFamily: "Georgia",
+    fontFamily: "Lora, Georgia",
     fontSize: 16,
     lineHeight: 24
   },
   heading: {
-    fontFamily: "Arial",
+    fontFamily: "Poppins, Arial",
     fontSize: 24,
     fontWeight: "700" as const,
     lineHeight: 30
   },
   label: {
-    fontFamily: "Arial",
+    fontFamily: "Poppins, Arial",
     fontSize: 13,
     fontWeight: "600" as const,
     letterSpacing: 0.2
