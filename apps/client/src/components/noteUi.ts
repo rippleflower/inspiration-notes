@@ -1,6 +1,7 @@
 import type { NoteSummary } from "@inspiration-notes/storage";
 
 export type ActiveView = "all" | "favorites" | "tags" | "folders" | "trash";
+export type LayoutMode = "auto" | "portrait" | "landscape";
 
 export const fontSizeRange = {
   default: 16,
@@ -21,6 +22,31 @@ export const primaryNavigationItems = Object.entries(viewLabels).map(([id, label
   id: id as ActiveView,
   label
 }));
+
+export const layoutModeLabels: Record<LayoutMode, string> = {
+  auto: "跟随屏幕",
+  portrait: "竖屏排列",
+  landscape: "横屏排列"
+};
+
+export const layoutModeItems = (Object.entries(layoutModeLabels) as Array<[LayoutMode, string]>).map(
+  ([id, label]) => ({
+    id,
+    label
+  })
+);
+
+export function resolveIsLandscapeLayout(layoutMode: LayoutMode, width: number): boolean {
+  if (layoutMode === "landscape") {
+    return true;
+  }
+
+  if (layoutMode === "portrait") {
+    return false;
+  }
+
+  return width >= 920;
+}
 
 export function clampFontSize(size: number): number {
   return Math.min(fontSizeRange.max, Math.max(fontSizeRange.min, size));

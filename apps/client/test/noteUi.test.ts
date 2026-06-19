@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { clampFontSize, collectTags, parseTagInput } from "../src/components/noteUi";
+import {
+  clampFontSize,
+  collectTags,
+  layoutModeItems,
+  parseTagInput,
+  resolveIsLandscapeLayout
+} from "../src/components/noteUi";
 
 describe("note UI helpers", () => {
   it("clamps font size controls to the supported range", () => {
@@ -42,5 +48,17 @@ describe("note UI helpers", () => {
         }
       ])
     ).toEqual(["alpha", "beta"]);
+  });
+
+  it("resolves manual app layout modes before falling back to width", () => {
+    expect(resolveIsLandscapeLayout("portrait", 1440)).toBe(false);
+    expect(resolveIsLandscapeLayout("landscape", 390)).toBe(true);
+    expect(resolveIsLandscapeLayout("auto", 919)).toBe(false);
+    expect(resolveIsLandscapeLayout("auto", 920)).toBe(true);
+    expect(layoutModeItems.map((item) => item.label)).toEqual([
+      "跟随屏幕",
+      "竖屏排列",
+      "横屏排列"
+    ]);
   });
 });

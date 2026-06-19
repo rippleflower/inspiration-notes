@@ -21,7 +21,10 @@ import {
   collectTags,
   fontSizeRange,
   formatTagInput,
-  parseTagInput
+  layoutModeItems,
+  parseTagInput,
+  resolveIsLandscapeLayout,
+  type LayoutMode
 } from "./noteUi";
 import { useInstalledPlugins } from "../plugins/useInstalledPlugins";
 import { useNotesStore } from "../state/useNotesStore";
@@ -49,7 +52,9 @@ export function NoteShell() {
     uninstallPlugin
   } = useInstalledPlugins();
   const { width } = useWindowDimensions();
-  const isWide = width >= 920;
+  const layoutMode = useNotesStore((state) => state.layoutMode);
+  const setLayoutMode = useNotesStore((state) => state.setLayoutMode);
+  const isLandscapeLayout = resolveIsLandscapeLayout(layoutMode, width);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [allSummaries, setAllSummaries] = useState<NoteSummary[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -290,12 +295,14 @@ export function NoteShell() {
             enabledPluginCount={enabledPluginCount}
             favoriteNotesCount={favoriteNotesCount}
             hasHydrated={hasHydrated}
+            layoutMode={layoutMode}
             onCreateNote={createNewNote}
+            onLayoutModeChange={setLayoutMode}
             title={title}
           />
 
-          <View style={[styles.body, !isWide && styles.bodyCompact]}>
-            <View style={[styles.sidebarWrap, !isWide && styles.sidebarCompact]}>
+          <View style={[styles.body, !isLandscapeLayout && styles.bodyCompact]}>
+            <View style={[styles.sidebarWrap, !isLandscapeLayout && styles.sidebarCompact]}>
               <NoteSidebar
                 activeId={activeId}
                 activeView={activeView}
@@ -383,7 +390,7 @@ export function NoteShell() {
                   />
                 </View>
 
-                {!isWide && (
+                {!isLandscapeLayout && (
                   <View style={styles.modeSwitch}>
                     <ToolbarButton
                       active={mode === "edit"}
@@ -445,11 +452,11 @@ export function NoteShell() {
                 />
               )}
 
-              <View style={[styles.workspace, !isWide && styles.workspaceCompact]}>
-                {(isWide || mode === "edit") && (
+              <View style={[styles.workspace, !isLandscapeLayout && styles.workspaceCompact]}>
+                {(isLandscapeLayout || mode === "edit") && (
                   <MarkdownEditor content={content} fontSize={fontSize} onChange={updateContent} />
                 )}
-                {(isWide || mode === "preview") && (
+                {(isLandscapeLayout || mode === "preview") && (
                   <MarkdownPreview content={content} fontSize={fontSize} />
                 )}
               </View>
@@ -474,7 +481,9 @@ function AppHeader({
   enabledPluginCount,
   favoriteNotesCount,
   hasHydrated,
+  layoutMode,
   onCreateNote,
+  onLayoutModeChange,
   title
 }: {
   activeNotesCount: number;
@@ -482,16 +491,18 @@ function AppHeader({
   enabledPluginCount: number;
   favoriteNotesCount: number;
   hasHydrated: boolean;
+  layoutMode: LayoutMode;
   onCreateNote(): void;
+  onLayoutModeChange(mode: LayoutMode): void;
   title: string;
 }) {
   return (
     <View style={styles.appHeader}>
       <View style={styles.headerCopy}>
-        <Text style={styles.productEyebrow}>WEB WORKSPACE</Text>
+        <Text style={styles.productEyebrow}>APP WORKSPACE</Text>
         <Text style={styles.appTitle}>灵感笔记</Text>
         <Text style={styles.appSubtitle}>
-          一个离线优先的 Markdown 灵感工作台。当前打开：{title}
+          一个离线优先的 Markdown 灵感工作台，可手动切换竖屏与横屏排列。当前打开：{title}
         </Text>
       </View>
 
@@ -503,6 +514,16 @@ function AppHeader({
           <MetricPill label="回收站" value={deletedNotesCount} tone="muted" />
         </View>
         <View style={styles.headerActions}>
+          <View style={styles.layoutSwitch} accessibilityLabel="App 布局模式">
+            {layoutModeItems.map((item) => (
+              <ToolbarButton
+                active={layoutMode === item.id}
+                key={item.id}
+                label={item.label}
+                onPress={() => onLayoutModeChange(item.id)}
+              />
+            ))}
+          </View>
           <View style={styles.readyPill}>
             <View style={[styles.readyDot, !hasHydrated && styles.readyDotPending]} />
             <Text style={styles.readyText}>{hasHydrated ? "本地数据已连接" : "载入本地数据"}</Text>
@@ -615,6 +636,12 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.accentDeep,
     textTransform: "uppercase"
+  },
+  layoutSwitch: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    justifyContent: "flex-end"
   },
   metricLabel: {
     color: colors.muted,
