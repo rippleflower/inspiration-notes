@@ -315,7 +315,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm
   },
   sidebar: {
-    gap: spacing.lg
+    backgroundColor: colors.canvas,
+    borderColor: colors.border,
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: spacing.lg,
+    padding: spacing.lg
   },
   tagChip: {
     backgroundColor: colors.canvas,
